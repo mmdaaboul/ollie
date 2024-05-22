@@ -38,30 +38,40 @@ func ParseVersion(version string) (int, int, int, int, string, string, error) {
 		return 0, 0, 0, 0, "", "", err
 	}
 
-	// Handle patch and optional tag
 	var patch, deployment int
 	var tag string
-	subParts := strings.SplitN(parts[2], "-", 2)
-	patch, err = strconv.Atoi(subParts[0])
-	if err != nil {
-		return 0, 0, 0, 0, "", "", err
-	}
-	if len(subParts) > 1 {
-		tag = subParts[1]
-	}
 
-	// Handle deployment for datever
-	if versionType == DATEVER && len(parts) > 3 {
-		deployment, err = strconv.Atoi(parts[3])
+	if versionType == SEMVER {
+		// Handle patch and optional tag
+		subParts := strings.SplitN(parts[2], "-", 2)
+		deployment = 0
+		patch, err = strconv.Atoi(subParts[0])
 		if err != nil {
 			return 0, 0, 0, 0, "", "", err
+		}
+		if len(subParts) > 1 {
+			tag = subParts[1]
+		}
+	} else {
+		subParts := strings.SplitN(parts[3], "-", 2)
+		patch, err = strconv.Atoi(parts[2])
+		if err != nil {
+			return 0, 0, 0, 0, "", "", err
+		}
+		deployment, err = strconv.Atoi(subParts[0])
+		if err != nil {
+			fmt.Printf("Deployment failed: %s", err)
+			return 0, 0, 0, 0, "", "", err
+		}
+		if len(subParts) > 1 {
+			tag = subParts[1]
 		}
 	}
 
 	return major, minor, patch, deployment, tag, versionType, nil
 }
 
-func VersionBump(version string, bump string, toProd bool) (string, error) {
+func VersionBump(version string, bump string, toProd, toStaging bool) (string, error) {
 	major, minor, patch, deployment, tag, versionType, err := ParseVersion(version)
 
 	if err != nil {
@@ -71,6 +81,8 @@ func VersionBump(version string, bump string, toProd bool) (string, error) {
 
 	if toProd {
 		tag = ""
+	} else if toStaging {
+		tag = "-rc"
 	} else {
 		tag = fmt.Sprintf("-%s", tag)
 	}

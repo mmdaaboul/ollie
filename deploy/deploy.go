@@ -2,7 +2,6 @@ package deploy
 
 import (
 	"fmt"
-	"ollie/db"
 	"ollie/git"
 	"ollie/stacks"
 	"ollie/styles"
@@ -35,22 +34,114 @@ func Deploy() {
 
 	switch level {
 	case "stack":
-		DeployStack()
+		deployStack()
 	case "staging":
-		fmt.Println(styles.ErrorStyle.Render("Not yet implemented"))
+		deployStaging()
 	case "production":
-		fmt.Println(styles.ErrorStyle.Render("Not yet implemented"))
+		log.Fatal(styles.ErrorStyle.Render("Not yet implemented"))
 	default:
 		log.Fatal("Invalid environment level")
 	}
 }
 
-func DeployStack() {
-	stack := stacks.SelectStack()
+func deployStack() {
+	stack, err := stacks.SelectStack()
+	if err != nil {
+		log.Fatal("There was an issue getting the stack", err)
+	}
+
+	log.Debug(styles.HighlightStyle.Render(fmt.Sprintf("Deploying to stack %s", stack)))
 
 	version := git.GetVersion()
-	fmt.Println(styles.HighlightStyle.Render(fmt.Sprintf("Current version is %s", version)))
+	log.Debug(styles.HighlightStyle.Render(fmt.Sprintf("Current version is %s", version)))
 
+	bump := versionBump()
+	newVersion, err := git.VersionBump(version, bump, false, false)
+
+	interfaces := releaseInterfaces()
+
+	log.Debug(styles.HighlightStyle.Render(fmt.Sprintf("New version is %s, stack is %s", newVersion, stack)))
+	err = spinner.New().
+		Title("Deploying...").
+		Action(func() { TagAndPush(newVersion, stack, interfaces) }).
+		Run()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func deployStaging() {
+	version := git.GetVersion()
+	bump := versionBump()
+	newVersion, err := git.VersionBump(version, bump, false, true)
+	if err != nil {
+		log.Fatalf("Unable to complete version bump: %s", err)
+	}
+	interfaces := releaseInterfaces()
+
+	log.Debugf("New version is %s, going to staging", newVersion)
+
+	err = spinner.New().
+		Title("Deploying...").
+		Action(func() { TagAndPush(newVersion, "staging", interfaces) }).
+		Run()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func deployProd() {
+	version := git.GetVersion()
+	bump := versionBump()
+	newVersion, err := git.VersionBump(version, bump, true, false)
+	if err != nil {
+		log.Fatalf("Unable to complete version bump: %s", err)
+	}
+	interfaces := releaseInterfaces()
+
+	log.Debugf("New version is %s, going to prod", newVersion)
+
+	err = spinner.New().
+		Title("Deploying...").
+		Action(func() { TagAndPush(newVersion, "", interfaces) }).
+		Run()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func TagAndPush(tag string, stack string, release bool) {
+	var message string
+	if stack != "" {
+		message = fmt.Sprintf("%s|%s", stack, tag)
+	} else {
+		// TODO: Get the url for the release
+	}
+
+	if release {
+		message += "|ri"
+	}
+	log.Debug(fmt.Sprintf("Tag: %s, Message: %s ", tag, message))
+	err := git.TagAndPush(tag, message)
+	if err != nil {
+		log.Fatalf("Error tagging and pushing: %s", err)
+	}
+}
+
+func releaseInterfaces() bool {
+	var release bool
+
+	setRelease := huh.NewConfirm().
+		Title("Release Interfaces").
+		Value(&release)
+
+	setRelease.Run()
+	return release
+}
+
+func versionBump() string {
 	var bump string
 
 	versionBump := huh.NewSelect[string]().
@@ -64,13 +155,5 @@ func DeployStack() {
 
 	versionBump.Run()
 
-	newVersion, err := git.VersionBump(version, bump, false)
-
-	fmt.Println(styles.HighlightStyle.Render(fmt.Sprintf("New version is %s", newVersion)))
-	err = spinner.New().
-		Title("Deploying").
-		Run()
-	if err != nil {
-		log.Fatal(err)
-	}
+	return bump
 }

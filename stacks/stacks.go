@@ -1,6 +1,7 @@
 package stacks
 
 import (
+	"fmt"
 	"ollie/db"
 
 	"github.com/charmbracelet/huh"
@@ -31,11 +32,16 @@ func SelectStack() (string, error) {
 			Value(&selectedStack)
 
 		form.Run()
+		var newStack string
 
 		if selectedStack == "new" {
-			form := huh.NewInput().Title("Enter a stack name").Value(&selectedStack)
+			form := huh.NewInput().Title("Enter a stack name").Value(&newStack)
 			form.Run()
+			selectedStack = newStack
+			db.AddStack(newStack)
+			log.Debug(fmt.Sprintf("Added %s to the local db", newStack))
 		}
-		db.AddStack(selectedStack)
 	}
+
+	return selectedStack, nil
 }
