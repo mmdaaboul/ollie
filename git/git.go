@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/log"
-	"github.com/go-git/go-git/plumbing"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 func GetVersion() string {
@@ -24,7 +24,7 @@ func GetVersion() string {
 	// Get the latest tag
 	var latestTag string
 	if err := tags.ForEach(func(ref *plumbing.Reference) error {
-		obj, err := r.TagObject(ref.Hash())
+		obj, err := repo.TagObject(ref.Hash())
 		switch err {
 		case nil:
 			// Tag object present

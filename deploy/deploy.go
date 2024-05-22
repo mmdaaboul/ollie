@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"ollie/db"
 	"ollie/git"
+	"ollie/stacks"
 	"ollie/styles"
 
 	"github.com/charmbracelet/huh"
@@ -45,40 +46,27 @@ func Deploy() {
 }
 
 func DeployStack() {
-	var selectedStack string
-	stacks, err := db.GetStacks()
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	if len(stacks) <= 0 {
-		form := huh.NewInput().Title("Enter a stack name").Value(&selectedStack)
-		form.Run()
-		db.AddStack(selectedStack)
-	} else {
-		options := []huh.Option[string]{}
-		for _, stack := range stacks {
-			options = append(options, huh.NewOption(stack, stack))
-		}
-		options = append(options, huh.NewOption("New Stack", "new"))
-
-		form := huh.NewSelect[string]().Title("Select a stack").
-			Options(options...).
-			Value(&selectedStack)
-
-		form.Run()
-
-		if selectedStack == "new" {
-			form := huh.NewInput().Title("Enter a stack name").Value(&selectedStack)
-			form.Run()
-		}
-		db.AddStack(selectedStack)
-	}
+	stack := stacks.SelectStack()
 
 	version := git.GetVersion()
-	fmt.Println(styles.HighlightStyle.Render(fmt.Sprintf("Deploying version %s to stack %s", version, selectedStack)))
+	fmt.Println(styles.HighlightStyle.Render(fmt.Sprintf("Current version is %s", version)))
 
+	var bump string
+
+	versionBump := huh.NewSelect[string]().
+		Title("How big of a bump?").
+		Options(
+			huh.NewOption("Major", "major"),
+			huh.NewOption("Minor", "minor"),
+			huh.NewOption("Patch", "patch"),
+			huh.NewOption("Don't bump", "same")).
+		Value(&bump)
+
+	versionBump.Run()
+
+	newVersion, err := git.VersionBump(version, bump, false)
+
+	fmt.Println(styles.HighlightStyle.Render(fmt.Sprintf("New version is %s", newVersion)))
 	err = spinner.New().
 		Title("Deploying").
 		Run()
