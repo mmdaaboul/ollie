@@ -9,6 +9,7 @@ import (
 	logo "ollie/logo"
 	"ollie/setup"
 	style "ollie/styles"
+	"ollie/zookeeper"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/log"
@@ -53,6 +54,8 @@ func main() {
 		task = "deploy"
 	} else if flag.Args()[0] == "zookeeper" {
 		task = "zookeeper"
+	} else if flag.Args()[0] == "printTags" {
+		task = "printTags"
 	}
 
 	_, err := setup.LoadConfig()
@@ -65,7 +68,7 @@ func main() {
 	case "deploy":
 		deploy.Deploy()
 	case "zookeeper":
-		fmt.Println("Zookeeper...")
+		zookeeper.EnterZookeeper()
 	case "printTags":
 		git.PrettyPrintTags()
 	default:

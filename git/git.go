@@ -106,7 +106,7 @@ func tagExists(tag string, r *git.Repository) bool {
 
 func setTag(r *git.Repository, tag, message string) (bool, error) {
 	if tagExists(tag, r) {
-		log.Debugf("tag %s already exists", tag)
+		log.Errorf("tag %s already exists", tag)
 		return false, nil
 	}
 	log.Debugf("Set tag %s", tag)
