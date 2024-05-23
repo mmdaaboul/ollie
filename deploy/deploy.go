@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"fmt"
+	"ollie/db"
 	"ollie/git"
 	"ollie/stacks"
 	"ollie/styles"
@@ -18,7 +19,7 @@ func Deploy() {
 		log.Fatal("This directory is not a git repository")
 		return
 	} else if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Error opening the git repo: %s", err)
 		return
 	}
 	var level string
@@ -38,7 +39,7 @@ func Deploy() {
 	case "staging":
 		deployStaging()
 	case "production":
-		log.Fatal(styles.ErrorStyle.Render("Not yet implemented"))
+		deployProd()
 	default:
 		log.Fatal("Invalid environment level")
 	}
@@ -108,7 +109,7 @@ func deployProd() {
 		Run()
 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("There was an issue with TagAndPush: %s", err)
 	}
 }
 
@@ -117,7 +118,7 @@ func TagAndPush(tag string, stack string, release bool) {
 	if stack != "" {
 		message = fmt.Sprintf("%s|%s", stack, tag)
 	} else {
-		// TODO: Get the url for the release
+		message = getReleaseDoc()
 	}
 
 	if release {
@@ -156,4 +157,42 @@ func versionBump() string {
 	versionBump.Run()
 
 	return bump
+}
+
+func getReleaseDoc() string {
+	var selectedDoc string
+	docs, err := db.GetReleaseDocs()
+	if err != nil {
+		log.Fatalf("Error returned from GetReleaseDocs: %s", err)
+		return ""
+	}
+
+	if len(docs) <= 0 {
+		form := huh.NewInput().Title("Enter Release Doc").Value(&selectedDoc)
+		form.Run()
+		db.AddReleaseDoc(selectedDoc)
+	} else {
+		options := []huh.Option[string]{}
+		for _, doc := range docs {
+			options = append(options, huh.NewOption(doc, doc))
+		}
+		options = append(options, huh.NewOption("New Doc", "new"))
+
+		form := huh.NewSelect[string]().Title("Select a doc").
+			Options(options...).
+			Value(&selectedDoc)
+
+		form.Run()
+		var newDoc string
+
+		if selectedDoc == "new" {
+			form := huh.NewInput().Title("Enter a doc URL").Value(&newDoc)
+			form.Run()
+			selectedDoc = newDoc
+			db.AddReleaseDoc(newDoc)
+			log.Debug(fmt.Sprintf("Added %s to the local db", newDoc))
+		}
+	}
+
+	return selectedDoc
 }

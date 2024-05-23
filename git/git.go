@@ -2,11 +2,10 @@ package git
 
 import (
 	"fmt"
-	"os"
+	"os/exec"
 
 	"github.com/charmbracelet/log"
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -15,13 +14,13 @@ func GetVersion() string {
 	// Fetch and pull latest changes
 	repo, err := git.PlainOpen(".")
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Error opening git repository: %s", err))
+		log.Fatalf("Error opening git repository: %s", err)
 	}
 
 	FetchAndPull(repo)
 	tags, err := repo.Tags()
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Error getting tags: %s", err))
+		log.Fatalf("Error getting tags: %s", err)
 	}
 
 	// Get the latest tag
@@ -50,7 +49,7 @@ func FetchAndPull(r *git.Repository) {
 	r.Fetch(&git.FetchOptions{RemoteName: "origin"})
 	w, err := r.Worktree()
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Error getting worktree: %s", err))
+		log.Fatalf("Error getting worktree: %s", err)
 	}
 
 	w.Pull(&git.PullOptions{RemoteName: "origin"})
@@ -130,22 +129,13 @@ func setTag(r *git.Repository, tag, message string) (bool, error) {
 }
 
 func pushTags(r *git.Repository) error {
-	po := &git.PushOptions{
-		RemoteName: "origin",
-		Progress:   os.Stdout,
-		RefSpecs:   []config.RefSpec{config.RefSpec("refs/tags/*:refs/tags/*")},
-	}
-	log.Debug("git push --tags")
-	err := r.Push(po)
+	cmd := exec.Command("git", "push", "--tags")
 
+	err := cmd.Run()
 	if err != nil {
-		if err == git.NoErrAlreadyUpToDate {
-			log.Info("origin remote was up to date, no push done")
-			return nil
-		}
-		log.Errorf("push to remote origin error: %s", err)
-		return err
+		log.Errorf("Error Pushing Tags: %s", err)
+	} else {
+		log.Debug("Successfully Pushed Tags")
 	}
-
-	return nil
+	return err
 }

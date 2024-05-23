@@ -8,7 +8,8 @@ import (
 )
 
 type Config struct {
-	DbPath string `json:"dbpath"`
+	DbPath     string `json:"dbpath"`
+	SshKeyPath string `json:"sshkeypath"`
 }
 
 var (
@@ -24,13 +25,7 @@ func LoadConfig() (Config, error) {
 			return
 		}
 
-		configDir := filepath.Join(home, ".config", "ollie")
-		err = os.MkdirAll(configDir, 0755)
-		if err != nil {
-			return
-		}
-
-		configPath := filepath.Join(configDir, "config")
+		configPath := getConfigPath()
 		var file *os.File
 		file, err = os.OpenFile(configPath, os.O_RDWR|os.O_CREATE, 0666)
 		if err != nil {
@@ -47,4 +42,26 @@ func LoadConfig() (Config, error) {
 	})
 
 	return config, err
+}
+
+// UpdateConfig updates the existing configuration with the provided newConfig
+func UpdateConfig(newConfig Config) {
+	jsonByte, _ := json.Marshal(newConfig)
+	configPath := getConfigPath()
+	os.WriteFile(configPath, jsonByte, 0666)
+}
+
+func getConfigPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	configDir := filepath.Join(home, ".config", "ollie")
+	err = os.MkdirAll(configDir, 0755)
+	if err != nil {
+		return ""
+	}
+
+	configPath := filepath.Join(configDir, "config.json")
+	return configPath
 }

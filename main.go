@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"ollie/deploy"
+	"ollie/git"
 	logo "ollie/logo"
 	"ollie/setup"
 	style "ollie/styles"
@@ -42,6 +43,7 @@ func main() {
 			Options(
 				huh.NewOption("Deploy", "deploy"),
 				huh.NewOption("Zookeeper", "zookeeper"),
+				huh.NewOption("Print Git Tags", "printTags"),
 			).
 			Value(&task)
 
@@ -64,6 +66,8 @@ func main() {
 		deploy.Deploy()
 	case "zookeeper":
 		fmt.Println("Zookeeper...")
+	case "printTags":
+		git.PrettyPrintTags()
 	default:
 		log.Error("Invalid task")
 	}

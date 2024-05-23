@@ -1,24 +1,28 @@
 package db
 
 import (
+	"bytes"
 	config "ollie/setup"
+	"time"
 
 	bolt "github.com/boltdb/bolt"
 	"github.com/charmbracelet/log"
 )
 
 var db *bolt.DB
+var stacksB string = "stacks"
+var docsB string = "release_docs"
 
 func init() {
 	var err error
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("There was an issue loading the config: %s", err)
 	}
 
 	db, err = bolt.Open(cfg.DbPath, 0666, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("There was an issue opening up the database: %s", err)
 	}
 }
 
@@ -61,10 +65,10 @@ func Delete(bucket *bolt.Bucket, key []byte) error {
 func GetStacks() ([]string, error) {
 	var stacks []string
 	err := Update(db, func(tx *bolt.Tx) error {
-		b := GetBucket(tx, "stacks")
+		b := GetBucket(tx, stacksB)
 		if b == nil {
 			var err error
-			b, err = CreateBucket(tx, "stacks")
+			b, err = CreateBucket(tx, stacksB)
 			if err != nil {
 				return err
 			}
@@ -85,10 +89,10 @@ func GetStacks() ([]string, error) {
 
 func AddStack(stack string) error {
 	return Update(db, func(tx *bolt.Tx) error {
-		b := GetBucket(tx, "stacks")
+		b := GetBucket(tx, stacksB)
 		if b == nil {
 			var err error
-			b, err = CreateBucket(tx, "stacks")
+			b, err = CreateBucket(tx, stacksB)
 			if err != nil {
 				return err
 			}
@@ -96,4 +100,44 @@ func AddStack(stack string) error {
 
 		return Put(b, []byte(stack), []byte{})
 	})
+}
+
+func GetReleaseDocs() ([]string, error) {
+	today := time.Now().Format("2006-01-02")
+	var docs []string
+	err := Update(db, func(tx *bolt.Tx) error {
+		b := GetBucket(tx, docsB)
+		if b == nil {
+			var err error
+			b, err = CreateBucket(tx, docsB)
+			if err != nil {
+				return err
+			}
+		}
+
+		return b.ForEach(func(k, v []byte) error {
+			if bytes.Equal(v, []byte(today)) {
+				docs = append(docs, string(k))
+			}
+			return nil
+		})
+	})
+
+	return docs, err
+}
+
+func AddReleaseDoc(key string) error {
+	err := db.Update(func(tx *bolt.Tx) error {
+		b := GetBucket(tx, docsB)
+		if b == nil {
+			var err error
+			b, err = CreateBucket(tx, docsB)
+			if err != nil {
+				return err
+			}
+		}
+		value := []byte(time.Now().Format("2006-01-02")) // Store date as string
+		return b.Put([]byte(key), value)
+	})
+	return err
 }

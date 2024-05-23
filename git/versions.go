@@ -75,7 +75,7 @@ func VersionBump(version string, bump string, toProd, toStaging bool) (string, e
 	major, minor, patch, deployment, tag, versionType, err := ParseVersion(version)
 
 	if err != nil {
-		log.Fatal(fmt.Sprintf("Version not in correct format: %s", err))
+		log.Fatalf("Version not in correct format: %s", err)
 		return "", err
 	}
 
@@ -100,7 +100,9 @@ func VersionBump(version string, bump string, toProd, toStaging bool) (string, e
 	case "patch":
 		patch += 1
 	case "same":
-		tag = IncrementString(tag)
+		if !toProd {
+			tag = IncrementString(tag)
+		}
 	default:
 		log.Fatal("Incorrect bump type")
 		return "", errors.New("Incorrect bump type")
