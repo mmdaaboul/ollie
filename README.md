@@ -56,6 +56,7 @@ This tool is far from complete in what I want it to do, here's my upcoming list 
 - [ ] Stack management, it stores all the stacks, release docs, and repos you use in a local DB, but there's no process to delete those like if a stack is destroyed. The list will expand fast and it needs a way to trim it
 - [ ] Auto DB management. Say, you haven't selected a specific stack within the last month, maybe the tool just removes it for you. Release docs should be gone after a couple of days
 - [ ] Wrap the logger that `go-zookeeper/zk` uses so that it follows the log level set by the `-l` flag
+- [ ] Add Database commands to update the DB's on stacks and staging using a mssql server driver. Think things like updating an order to be a certain type, or adding funds to an account
 
 I also accept suggestions into the roadmap, but they won't be as considered if they don't come with an implementation plan or PR.
 
