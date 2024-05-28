@@ -11,6 +11,21 @@ import (
 	"github.com/go-zookeeper/zk"
 )
 
+func init() {
+	// Disable ZooKeeper client logging by setting the logger to a no-op logger
+	zk.DefaultLogger = &noopLogger{}
+}
+
+type noopLogger struct{}
+
+func (l *noopLogger) Printf(format string, a ...interface{}) {
+	// No-op
+}
+
+func (l *noopLogger) Println(v ...interface{}) {
+	// No-op
+}
+
 func getEnv() string {
 	var level string
 	form := huh.NewSelect[string]().Title("Select an environment level").
