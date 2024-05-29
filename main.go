@@ -54,7 +54,7 @@ func main() {
 	} else if flag.Args()[0] == "deploy" {
 		// Skip the form if the first non-flag argument is "deploy"
 		task = "deploy"
-	} else if flag.Args()[0] == "zookeeper" {
+	} else if flag.Args()[0] == "zookeeper" || flag.Args()[0] == "zk" {
 		task = "zookeeper"
 	} else if flag.Args()[0] == "printTags" {
 		task = "printTags"

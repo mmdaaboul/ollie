@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"ollie/stacks"
 	"ollie/styles"
+	"sort"
 	"time"
 
 	"github.com/charmbracelet/huh"
@@ -60,27 +61,25 @@ func EnterZookeeper() {
 
 	var task string
 	form := huh.NewSelect[string]().Title("What do you want to do?").
-		Options(huh.NewOption("Read What it is pointing to", "read")).
+		Options(
+			huh.NewOption("Read What Tracfone is pointing to", "read"),
+			huh.NewOption("Set Vendor Environment", "set"),
+		).
 		Value(&task)
 
 	form.Run()
 	switch task {
 	case "read":
 		readEnv(env)
+	case "set":
+		setVendorEnv(env)
 	default:
 		log.Fatal("Invalid task")
 	}
 }
 
 func readEnv(env string) {
-	// Zookeeper server address
-	serverAddr := []string{fmt.Sprintf("zookeeper.%s.tcetra.dev", env)}
-
-	// Connect to Zookeeper
-	conn, _, err := zk.Connect(serverAddr, time.Second*10) // Set timeout of 10 seconds
-	if err != nil {
-		log.Fatalf("Error connecting to ZooKeeper: %s", err)
-	}
+	conn := initializeConnection(env)
 	defer conn.Close()
 
 	// Path to read data from
@@ -93,5 +92,58 @@ func readEnv(env string) {
 		log.Fatal("Error reading data:", err)
 	}
 
-	fmt.Println(styles.HighlightStyle.Render(fmt.Sprintf("Data: %s", string(data))))
+	fmt.Println(styles.HighlightStyle.Render("Current_Env: ", string(data)))
+}
+
+func setVendorEnv(env string) {
+	conn := initializeConnection(env)
+	defer conn.Close()
+
+	data, _, err := conn.Children("/vidapay/vendors")
+	if err != nil {
+		log.Fatal("Error reading data:", err)
+	}
+	sort.Strings(data)
+
+	var vendorName string
+	vendorForm := huh.NewSelect[string]().Title("Select a vendor?").
+		Options(huh.NewOptions(data...)...).
+		Value(&vendorName)
+	vendorForm.WithAccessible(true).Run()
+
+	currentEnv, _, err := conn.Get(fmt.Sprintf("/vidapay/vendors/%s/current_env", vendorName))
+	if err != nil {
+		log.Fatal("Error reading current_env:", err)
+	}
+
+	fmt.Println(styles.HighlightStyle.Render("Current_Env:", string(currentEnv)))
+
+	var new_env string
+	envForm := huh.NewInput().Title("Enter a new environment").
+		Value(&new_env)
+	envForm.Run()
+
+	_, setError := conn.Set(fmt.Sprintf("/vidapay/vendors/%s/current_env", vendorName), []byte(new_env), -1)
+	if setError != nil {
+		log.Fatal("Error setting current_env:", setError)
+	}
+
+	next_env, _, err := conn.Get(fmt.Sprintf("/vidapay/vendors/%s/current_env", vendorName))
+	if err != nil {
+		log.Fatal("Error reading current_env:", err)
+	}
+
+	fmt.Println(styles.HighlightStyle.Render("Environment now set to:", string(next_env)))
+}
+
+func initializeConnection(env string) *zk.Conn {
+	// Zookeeper server address
+	serverAddr := []string{fmt.Sprintf("zookeeper.%s.tcetra.dev", env)}
+	// Connect to Zookeeper
+	conn, _, err := zk.Connect(serverAddr, time.Second*10)
+	if err != nil {
+		log.Fatalf("Error connecting to ZooKeeper: %s", err)
+	}
+
+	return conn
 }
