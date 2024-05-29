@@ -40,6 +40,8 @@ func SelectStack() (string, error) {
 			selectedStack = newStack
 			db.AddStack(newStack)
 			log.Debug(fmt.Sprintf("Added %s to the local db", newStack))
+		} else {
+			db.UpdateStack(selectedStack)
 		}
 	}
 

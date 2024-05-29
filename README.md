@@ -37,7 +37,13 @@ Currently it has 3 main functions, Deploying (via git tags), Zookeeper (Reading 
 All three of these functions are presented as a choice to you when you run `ollie`, however you can skip the first prompt if you pass what you want to do
 
 ```bash
-$ ollie [deploy|zookeeper|printTags]
+$ ollie
+```
+
+**OR**
+
+```bash
+$ ollie [deploy|zookeeper|printTags|db]
 ```
 
 You can then go through the tool answering it's questions and it should help you through the tasks
