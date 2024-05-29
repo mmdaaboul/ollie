@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"ollie/db"
 	"ollie/deploy"
 	"ollie/git"
 	logo "ollie/logo"
@@ -45,6 +46,7 @@ func main() {
 				huh.NewOption("Deploy", "deploy"),
 				huh.NewOption("Zookeeper", "zookeeper"),
 				huh.NewOption("Print Git Tags", "printTags"),
+				huh.NewOption("Manage Database", "db"),
 			).
 			Value(&task)
 
@@ -56,6 +58,8 @@ func main() {
 		task = "zookeeper"
 	} else if flag.Args()[0] == "printTags" {
 		task = "printTags"
+	} else if flag.Args()[0] == "db" {
+		task = "db"
 	}
 
 	_, err := setup.LoadConfig()
@@ -71,6 +75,8 @@ func main() {
 		zookeeper.EnterZookeeper()
 	case "printTags":
 		git.PrettyPrintTags()
+	case "db":
+		db.ManageDb()
 	default:
 		log.Error("Invalid task")
 	}
